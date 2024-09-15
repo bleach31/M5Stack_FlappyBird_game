@@ -5,6 +5,7 @@
 #include <EEPROM.h>
 #include <M5StickC.h>
 
+#define AUTOSLEEP  180   // Time to sleep(seconds)
 #define TFTW  80   // screen width
 #define TFTH  160  // screen height
 #define TFTW2 40   // half screen width
@@ -285,12 +286,19 @@ void game_start() {
     M5.Lcd.println("M5StickC");
     M5.Lcd.setCursor(TFTW2 - 40, TFTH2 + 21);
     M5.Lcd.println("please press home");
+    M5.Lcd.println("");
+    M5.Lcd.printf("vbat:%.3fV\r\n", M5.Axp.GetBatVoltage());
+    
+    unsigned long sleeptime = millis() + AUTOSLEEP * 1000;
     while (1) {
         // wait for push button
         if (digitalRead(M5_BUTTON_HOME) == LOW) {
             while (digitalRead(M5_BUTTON_HOME) == LOW)
                 ;
             break;
+        }
+        if (millis() > sleeptime) {
+            M5.Axp.PowerOff();
         }
     }
     // init game settings
@@ -303,7 +311,7 @@ void game_init() {
     // reset score
     score = 0;
     // init bird
-    bird.x = 30;
+    bird.x = 10;
     bird.y = bird.old_y = TFTH2 - BIRDH;
     bird.vel_y          = -JUMP_FORCE;
     tmpx = tmpy = 0;
@@ -345,12 +353,16 @@ void game_over() {
     M5.Lcd.setCursor(1, 21);
     M5.Lcd.print("Max Score:");
     M5.Lcd.print(maxScore);
+    unsigned long sleeptime = millis() + AUTOSLEEP * 1000;
     while (1) {
         // wait for push button
         if (digitalRead(M5_BUTTON_HOME) == LOW) {
             while (digitalRead(M5_BUTTON_HOME) == LOW)
                 ;
             break;
+        }
+        if (millis() > sleeptime) {
+            M5.Axp.PowerOff();
         }
     }
 }
@@ -364,7 +376,8 @@ void setup() {
     // put your setup code here, to run once:
     M5.begin();
     EEPROM.begin(1000);
-    pinMode(M5_BUTTON_HOME, INPUT);
+    pinMode(M5_BUTTON_HOME, INPUT);   
+    M5.Axp.ScreenBreath(10);
     // resetMaxScore();
     Serial.println("last score:");
     Serial.println(EEPROM.readInt(address));
